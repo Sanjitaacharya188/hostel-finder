@@ -1,58 +1,34 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import "./Navbar.css";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-function Navbar() {
+export default function Navbar() {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const token = localStorage.getItem("token");
-  const userName = localStorage.getItem("userName");
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userName");
+    logout();
     navigate("/login");
   };
 
-  const isActive = (path) => location.pathname === path;
-
   return (
     <nav className="navbar">
-      <div className="nav-logo" onClick={() => navigate("/home")}>
-        Hostel Finder
-      </div>
-
+      <Link to="/" className="brand">Hostel Finder</Link>
       <div className="nav-links">
-        <Link className={isActive("/home") || isActive("/") ? "active-link" : ""} to="/home">
-          Home
-        </Link>
-
-        {token && (
-          <Link className={isActive("/bookings") ? "active-link" : ""} to="/bookings">
-            Bookings
-          </Link>
-        )}
-
-        {!token ? (
+        <NavLink to="/">Home</NavLink>
+        {user && <NavLink to="/bookings">Bookings</NavLink>}
+        {user?.isAdmin && <NavLink to="/admin">Admin</NavLink>}
+        {user ? (
           <>
-            <Link className={isActive("/login") ? "active-link" : ""} to="/login">
-              Login
-            </Link>
-            <Link className={isActive("/register") ? "active-link" : ""} to="/register">
-              Register
-            </Link>
+            <span className="welcome">Hi, {user.name}</span>
+            <button onClick={handleLogout} className="danger-btn">Logout</button>
           </>
         ) : (
           <>
-            <span className="welcome-text">Hi, {userName || "User"}</span>
-            <button className="logout-btn" onClick={handleLogout}>
-              Logout
-            </button>
+            <NavLink to="/login">Login</NavLink>
+            <NavLink to="/register">Register</NavLink>
           </>
         )}
       </div>
     </nav>
   );
 }
-
-export default Navbar;

@@ -1,0 +1,259 @@
+.home-page {
+  background: #f8fafc;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+.hero-section {
+  height: 390px;
+  background: url("../assets/hero.png") center/cover no-repeat;
+  position: relative;
+}
+
+.hero-overlay {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(2, 6, 23, 0.82),
+    rgba(15, 23, 42, 0.72)
+  );
+  display: flex;
+  align-items: center;
+}
+
+.hero-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px;
+  color: white;
+}
+
+.hero-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.12);
+  color: #e0f2fe;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.hero-content h1 {
+  font-size: 56px;
+  line-height: 1.1;
+  max-width: 700px;
+  margin-bottom: 16px;
+  font-weight: 800;
+}
+
+.hero-content p {
+  font-size: 18px;
+  max-width: 640px;
+  color: #dbeafe;
+  line-height: 1.7;
+}
+
+.search-section {
+  max-width: 1200px;
+  margin: -48px auto 0;
+  padding: 0 28px;
+  position: relative;
+  z-index: 5;
+}
+
+.search-box {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 18px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  outline: none;
+  font-size: 17px;
+  color: #0f172a;
+  transition: 0.25s ease;
+}
+
+.search-box input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
+
+.hostel-section {
+  max-width: 1200px;
+  margin: 46px auto 0;
+  padding: 0 28px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.section-header h2 {
+  font-size: 34px;
+  color: #0f172a;
+}
+
+.section-header p {
+  font-size: 16px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.hostel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+
+.hostel-card {
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hostel-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.14);
+}
+
+.hostel-image {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+}
+
+.hostel-card-content {
+  padding: 22px;
+}
+
+.hostel-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.hostel-card-top h3 {
+  font-size: 28px;
+  line-height: 1.25;
+  color: #0f172a;
+}
+
+.rating-badge {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 9px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.hostel-location {
+  font-size: 17px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.hostel-price {
+  font-size: 36px;
+  font-weight: 800;
+  color: #16a34a;
+  margin-bottom: 20px;
+}
+
+.details-btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: white;
+  padding: 13px 20px;
+  border-radius: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: 0.25s ease;
+}
+
+.details-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  transform: translateY(-1px);
+}
+
+.status-text {
+  text-align: center;
+  font-size: 18px;
+  color: #64748b;
+  padding: 40px 20px;
+}
+
+@media (max-width: 1100px) {
+  .hero-content h1 {
+    font-size: 46px;
+  }
+
+  .hostel-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-section {
+    height: 320px;
+  }
+
+  .hero-content {
+    padding: 0 18px;
+  }
+
+  .hero-content h1 {
+    font-size: 34px;
+  }
+
+  .hero-content p {
+    font-size: 16px;
+  }
+
+  .search-section,
+  .hostel-section {
+    padding: 0 18px;
+  }
+
+  .search-box {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hostel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hostel-card-top h3 {
+    font-size: 24px;
+  }
+
+  .hostel-price {
+    font-size: 30px;
+  }
+}

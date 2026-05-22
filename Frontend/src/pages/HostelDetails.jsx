@@ -1,538 +1,259 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import api from "../api";
+import { useAuth } from "../context/AuthContext";
 
-import hostel1 from "../assets/hostel1.jpg";
-import hostel2 from "../assets/hostel2.png";
-import hostel3 from "../assets/hostel3.jpg";
-import hostel4 from "../assets/hostel4.jpg";
+const seatMap = {
+  fourSeat: "4 Seat",
+  threeSeat: "3 Seat",
+  twoSeat: "2 Seat",
+  singleRoom: "Single Room",
+};
 
-function HostelDetails() {
+const getImage = (name) => {
+  if (name === "Hamro Swarnim Sansar Girls Hostel") return "/assets/hostel3.jpg";
+  if (name === "Peace Hostel") return "/assets/hostel2.png";
+  if (name === "Everest Hostel") return "/assets/hostel4.jpg";
+  if (name === "Student Stay Hub") return "/assets/hero.png";
+  return "/assets/hostel2.png";
+};
+
+export default function HostelDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [hostel, setHostel] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
-  const [studentName, setStudentName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("eSewa");
-
-  const [comment, setComment] = useState("");
-  const [rating, setRating] = useState("");
-
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-
-  const hostelImages = {
-    "Peace Hostel": hostel1,
-    "Everest Hostel": hostel2,
-    "Hamro Swarnim Sansar Girls Hostel": hostel3,
-    "Sunrise Hostel": hostel4,
-  };
+  const [form, setForm] = useState({
+    customerName: "",
+    phone: "",
+    seatType: "fourSeat",
+    paymentMethod: "Cash",
+  });
 
   useEffect(() => {
-    document.title = "Hostel Details - Hostel Finder";
+    const fetchHostel = async () => {
+      try {
+        const { data } = await api.get(`/hostels/${id}`);
+        setHostel(data);
+      } catch (error) {
+        toast.error("Failed to fetch hostel");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchHostel();
   }, [id]);
 
-  useEffect(() => {
-    if (message || error) {
-      const timer = setTimeout(() => {
-        setMessage("");
-        setError("");
-      }, 3000);
+  const price = useMemo(() => {
+    return hostel?.seatPricing?.[form.seatType]?.price || 0;
+  }, [hostel, form.seatType]);
 
-      return () => clearTimeout(timer);
-    }
-  }, [message, error]);
+  const available = useMemo(() => {
+    return hostel?.seatPricing?.[form.seatType]?.available || 0;
+  }, [hostel, form.seatType]);
 
-  const fetchHostel = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/hostels");
-      const allHostels = Array.isArray(res.data) ? res.data : [];
-      const found = allHostels.find((item) => item._id === id);
-      setHostel(found || null);
-    } catch (err) {
-      console.log(err);
-      setHostel(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const submit = async (e) => {
+  e.preventDefault();
 
-  const submitBooking = async () => {
-    const token = localStorage.getItem("token");
+  if (!user) {
+    navigate("/login");
+    return;
+  }
 
-    if (!token) {
-      setError("Please login first");
+  if (!form.customerName.trim()) {
+    toast.error("Name is required");
+    return;
+  }
+
+  if (!/^\d{10}$/.test(form.phone)) {
+    toast.error("Phone must be 10 digits");
+    return;
+  }
+
+  try {
+    setBookingLoading(true);
+
+    const { data } = await api.post("/bookings", {
+      hostelId: id,
+      customerName: form.customerName,
+      phone: form.phone,
+      seatType: form.seatType,
+      paymentMethod: form.paymentMethod,
+    });
+
+    // Khalti payment redirect
+    if (data.redirectUrl) {
+      window.location.href = data.redirectUrl;
       return;
     }
 
-    const cleanName = studentName.trim();
-    const cleanPhone = phone.trim();
+    // eSewa payment auto-submit form
+    if (data.esewaForm) {
+      const formEl = document.createElement("form");
+      formEl.method = "POST";
+      formEl.action = data.esewaForm.action;
 
-    if (!cleanName) {
-      setError("Enter your name");
-      return;
-    }
-
-    if (!/^[A-Za-z\s]+$/.test(cleanName)) {
-      setError("Name must contain only letters");
-      return;
-    }
-
-    if (!/^\d{10}$/.test(cleanPhone)) {
-      setError("Phone number must be exactly 10 digits");
-      return;
-    }
-
-    try {
-      const res = await api.post("/book", {
-        hostelName: hostel.name,
-        studentName: cleanName,
-        phone: cleanPhone,
-        paymentMethod,
+      Object.entries(data.esewaForm.fields).forEach(([key, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value;
+        formEl.appendChild(input);
       });
 
-      setMessage(res.data.message || "Booking successful");
-      setStudentName("");
-      setPhone("");
-      setPaymentMethod("eSewa");
-    } catch (err) {
-      setError(err.response?.data?.message || "Booking failed");
-    }
-  };
-
-  const addReview = async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setError("Please login first to add review");
+      document.body.appendChild(formEl);
+      formEl.submit();
       return;
     }
 
-    if (!comment.trim() || !rating) {
-      setError("Comment and rating are required");
-      return;
-    }
-
-    try {
-      const res = await api.post(`/hostels/${hostel._id}/reviews`, {
-        comment: comment.trim(),
-        rating: Number(rating),
-      });
-
-      setMessage(res.data.message || "Review added successfully");
-      setComment("");
-      setRating("");
-      fetchHostel();
-    } catch (err) {
-      setError(err.response?.data?.message || "Review failed");
-    }
-  };
+    toast.success("Booking successful");
+    navigate("/bookings");
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Booking failed");
+  } finally {
+    setBookingLoading(false);
+  }
+};
 
   if (loading) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#eef2f7",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          fontSize: "22px",
-          fontWeight: "bold",
-        }}
-      >
-        Loading hostel details...
-      </div>
-    );
+    return <div className="page">Loading...</div>;
   }
 
   if (!hostel) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#eef2f7",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "16px",
-          padding: "20px",
-          textAlign: "center",
-        }}
-      >
-        <h2>Hostel not found</h2>
-        <button
-          onClick={() => navigate("/home")}
-          style={{
-            padding: "12px 18px",
-            background: "#2563eb",
-            color: "white",
-            border: "none",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          Back to Home
-        </button>
-      </div>
-    );
+    return <div className="page">Hostel not found</div>;
   }
 
-  const imageSrc = hostelImages[hostel.name] || hostel1;
-
   return (
-    <div
-      style={{
-        background: "#eef2f7",
-        minHeight: "100vh",
-        padding: "24px",
-        fontFamily: "Segoe UI, sans-serif",
-      }}
-    >
-      {message && (
-        <div
-          style={{
-            background: "#16a34a",
-            color: "white",
-            fontWeight: "bold",
-            padding: "12px 18px",
-            borderRadius: "10px",
-            width: "fit-content",
-            margin: "0 auto 20px",
-          }}
-        >
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div
-          style={{
-            background: "#dc2626",
-            color: "white",
-            fontWeight: "bold",
-            padding: "12px 18px",
-            borderRadius: "10px",
-            width: "fit-content",
-            margin: "0 auto 20px",
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-      <div
-        style={{
-          maxWidth: "1150px",
-          margin: "0 auto",
-          background: "white",
-          borderRadius: "24px",
-          overflow: "hidden",
-          boxShadow: "0 10px 28px rgba(0,0,0,0.10)",
-        }}
-      >
+    <div className="page details-layout">
+      <div className="card">
         <img
-          src={imageSrc}
+          src={getImage(hostel.name)}
           alt={hostel.name}
-          onError={(e) => {
-            e.target.src = hostel1;
-          }}
-          style={{
-            width: "100%",
-            height: "430px",
-            objectFit: "cover",
-          }}
+          className="details-image"
         />
 
-        <div style={{ padding: "28px" }}>
-          <button
-            onClick={() => navigate("/home")}
-            style={{
-              marginBottom: "18px",
-              padding: "10px 16px",
-              background: "#0f172a",
-              color: "white",
-              border: "none",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            ← Back
-          </button>
+        <h2>{hostel.name}</h2>
+        <p>{hostel.location}</p>
+        <p>{hostel.description}</p>
+        <p>⭐ {hostel.rating}</p>
 
-          <h1
-            style={{
-              margin: "0 0 14px",
-              fontSize: "46px",
-              color: "#0f172a",
-            }}
-          >
-            {hostel.name}
-          </h1>
+        <div className="badge-row">
+          {hostel.facilities?.map((f) => (
+            <span className="badge" key={f}>
+              {f}
+            </span>
+          ))}
+        </div>
 
-          {Number(hostel.rating) >= 4.5 && (
-            <p
-              style={{
-                color: "#15803d",
-                fontWeight: "bold",
-                background: "#dcfce7",
-                display: "inline-block",
-                padding: "8px 12px",
-                borderRadius: "999px",
-                marginBottom: "18px",
-              }}
-            >
-              Recommended Hostel
-            </p>
-          )}
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: "16px",
-              marginBottom: "24px",
-            }}
-          >
-            <div
-              style={{
-                background: "#f8fafc",
-                padding: "16px",
-                borderRadius: "14px",
-              }}
-            >
-              <strong>Location</strong>
-              <p style={{ margin: "8px 0 0" }}>{hostel.location}</p>
-            </div>
-
-            <div
-              style={{
-                background: "#f8fafc",
-                padding: "16px",
-                borderRadius: "14px",
-              }}
-            >
-              <strong>Price</strong>
-              <p style={{ margin: "8px 0 0", color: "green", fontWeight: "bold" }}>
-                Rs. {hostel.price}
-              </p>
-            </div>
-
-            <div
-              style={{
-                background: "#f8fafc",
-                padding: "16px",
-                borderRadius: "14px",
-              }}
-            >
-              <strong>Rating</strong>
-              <p style={{ margin: "8px 0 0" }}>
-                {"⭐".repeat(Math.floor(hostel.rating || 0))} ({hostel.rating || 0})
-              </p>
-            </div>
+        <div className="price-list">
+          <div>
+            <span>4 Seat Room</span>
+            <strong>Rs. {hostel.seatPricing.fourSeat.price}</strong>
           </div>
-
-          <a
-            href={hostel.mapLink}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              display: "inline-block",
-              marginBottom: "28px",
-              color: "#2563eb",
-              fontWeight: "bold",
-              textDecoration: "none",
-              fontSize: "18px",
-            }}
-          >
-            View on Google Maps
-          </a>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: "20px",
-              marginBottom: "24px",
-            }}
-          >
-            <div
-              style={{
-                background: "#f8fafc",
-                borderRadius: "16px",
-                padding: "20px",
-              }}
-            >
-              <h2 style={{ marginTop: 0 }}>Book This Hostel</h2>
-
-              <input
-                type="text"
-                placeholder="Your Name"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  marginBottom: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid #ccc",
-                  boxSizing: "border-box",
-                }}
-              />
-
-              <input
-                type="text"
-                placeholder="Phone Number"
-                value={phone}
-                onChange={(e) => {
-                  const onlyNumbers = e.target.value.replace(/\D/g, "");
-                  if (onlyNumbers.length <= 10) setPhone(onlyNumbers);
-                }}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  marginBottom: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid #ccc",
-                  boxSizing: "border-box",
-                }}
-              />
-
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  marginBottom: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid #ccc",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="eSewa">eSewa</option>
-                <option value="Khalti">Khalti</option>
-                <option value="Cash">Cash</option>
-              </select>
-
-              <button
-                onClick={submitBooking}
-                style={{
-                  padding: "12px 18px",
-                  background: "#16a34a",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                Book Now
-              </button>
-            </div>
-
-            <div
-              style={{
-                background: "#f8fafc",
-                borderRadius: "16px",
-                padding: "20px",
-              }}
-            >
-              <h2 style={{ marginTop: 0 }}>Add Review</h2>
-
-              <textarea
-                placeholder="Write your review"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                style={{
-                  width: "100%",
-                  minHeight: "90px",
-                  padding: "12px",
-                  marginBottom: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid #ccc",
-                  boxSizing: "border-box",
-                }}
-              />
-
-              <select
-                value={rating}
-                onChange={(e) => setRating(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  marginBottom: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid #ccc",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="">Select rating</option>
-                <option value="1">1 Star</option>
-                <option value="2">2 Stars</option>
-                <option value="3">3 Stars</option>
-                <option value="4">4 Stars</option>
-                <option value="5">5 Stars</option>
-              </select>
-
-              <button
-                onClick={addReview}
-                style={{
-                  padding: "12px 18px",
-                  background: "#2563eb",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                Submit Review
-              </button>
-            </div>
+          <div>
+            <span>3 Seat Room</span>
+            <strong>Rs. {hostel.seatPricing.threeSeat.price}</strong>
           </div>
-
-          <div
-            style={{
-              background: "#f8fafc",
-              borderRadius: "16px",
-              padding: "20px",
-            }}
-          >
-            <h2 style={{ marginTop: 0, marginBottom: "14px" }}>All Reviews</h2>
-
-            {!Array.isArray(hostel.reviews) || hostel.reviews.length === 0 ? (
-              <p>No reviews yet.</p>
-            ) : (
-              hostel.reviews.map((review, index) => (
-                <div
-                  key={index}
-                  style={{
-                    background: "white",
-                    padding: "14px",
-                    borderRadius: "12px",
-                    marginBottom: "12px",
-                    border: "1px solid #e5e7eb",
-                  }}
-                >
-                  <strong>{review.userName}</strong> - {"⭐".repeat(review.rating)}
-                  <p style={{ margin: "8px 0 0" }}>{review.comment}</p>
-                </div>
-              ))
-            )}
+          <div>
+            <span>2 Seat Room</span>
+            <strong>Rs. {hostel.seatPricing.twoSeat.price}</strong>
+          </div>
+          <div>
+            <span>Single Room</span>
+            <strong>Rs. {hostel.seatPricing.singleRoom.price}</strong>
           </div>
         </div>
       </div>
+
+      <form className="card" onSubmit={submit}>
+        <h2>Book Hostel</h2>
+
+        <label>Seat Type</label>
+        <select
+          value={form.seatType}
+          onChange={(e) => setForm({ ...form, seatType: e.target.value })}
+        >
+          <option value="fourSeat">
+            4 Seat (Rs. {hostel.seatPricing.fourSeat.price})
+          </option>
+          <option value="threeSeat">
+            3 Seat (Rs. {hostel.seatPricing.threeSeat.price})
+          </option>
+          <option value="twoSeat">
+            2 Seat (Rs. {hostel.seatPricing.twoSeat.price})
+          </option>
+          <option value="singleRoom">
+            Single Room (Rs. {hostel.seatPricing.singleRoom.price})
+          </option>
+        </select>
+
+        <label>Payment</label>
+        <select
+          value={form.paymentMethod}
+          onChange={(e) =>
+            setForm({ ...form, paymentMethod: e.target.value })
+          }
+        >
+          <option value="Cash">Cash</option>
+          <option value="eSewa">eSewa</option>
+          <option value="Khalti">Khalti</option>
+        </select>
+
+        <label>Name</label>
+        <input
+          type="text"
+          value={form.customerName}
+          onChange={(e) =>
+            setForm({ ...form, customerName: e.target.value })
+          }
+          placeholder="Enter name"
+        />
+
+        <label>Phone</label>
+        <input
+          type="text"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          placeholder="10 digit number"
+        />
+
+        <div className="summary-box">
+          <div>
+            <span>Hostel</span>
+            <strong>{hostel.name}</strong>
+          </div>
+          <div>
+            <span>Seat</span>
+            <strong>{seatMap[form.seatType]}</strong>
+          </div>
+          <div>
+            <span>Payment</span>
+            <strong>{form.paymentMethod}</strong>
+          </div>
+          <div>
+            <span>Available</span>
+            <strong>{available} left</strong>
+          </div>
+          <div>
+            <span>Total</span>
+            <strong>Rs. {price}</strong>
+          </div>
+        </div>
+
+        <button type="submit" disabled={bookingLoading || available <= 0}>
+          {bookingLoading
+            ? "Processing..."
+            : available <= 0
+            ? "Sold Out"
+            : "Book Now"}
+        </button>
+      </form>
     </div>
   );
 }
-
-export default HostelDetails;

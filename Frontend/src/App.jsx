@@ -1,40 +1,38 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import PrivateRoute from "./components/PrivateRoute";
-import Home from "./pages/Home";
-import Bookings from "./pages/Bookings";
+import AdminRoute from "./components/AdminRoute";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Home from "./pages/Home";
 import HostelDetails from "./pages/HostelDetails";
-
-function Footer() {
-  return (
-    <footer
-      style={{
-        textAlign: "center",
-        padding: "20px",
-        background: "#0f172a",
-        color: "white",
-        marginTop: "40px",
-        fontWeight: "500",
-      }}
-    >
-      © 2026 Hostel Finder | Find safe and affordable hostels easily
-    </footer>
-  );
-}
+import Bookings from "./pages/Bookings";
+import AdminDashboard from "./pages/AdminDashboard";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentFailure from "./pages/PaymentFailure";
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <Navbar />
 
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/hostels/:id" element={<HostelDetails />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Route path="/payment-failure" element={<PaymentFailure />} />
 
         <Route
           path="/bookings"
@@ -44,9 +42,19 @@ function App() {
             </PrivateRoute>
           }
         />
+
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
       </Routes>
 
       <Footer />
+      <ToastContainer position="top-right" />
     </BrowserRouter>
   );
 }

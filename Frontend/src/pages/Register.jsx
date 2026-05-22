@@ -1,117 +1,60 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import api from "../api";
+import { useAuth } from "../context/AuthContext";
 
-function Register() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+export default function Register() {
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const handleRegister = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
 
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      setMessage("All fields are required");
-      return;
-    }
-
-    if (password.trim().length < 6) {
-      setMessage("Password must be at least 6 characters");
-      return;
-    }
+    if (!form.name.trim()) return toast.error("Name is required");
+    if (!form.email.trim()) return toast.error("Email is required");
+    if (!form.password.trim()) return toast.error("Password is required");
 
     try {
-      const res = await api.post("/register", {
-        name: name.trim(),
-        email: email.trim(),
-        password: password.trim(),
-      });
-
-      setMessage(res.data.message || "Registration successful");
-
-      setTimeout(() => {
-        navigate("/login");
-      }, 1000);
-    } catch (err) {
-      setMessage(err.response?.data?.message || "Registration failed");
+      setLoading(true);
+      const { data } = await api.post("/auth/register", form);
+      login(data);
+      toast.success("Registration successful");
+      navigate("/");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Register failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: "30px", maxWidth: "420px", margin: "40px auto" }}>
-      <h1>Register</h1>
-
-      <form onSubmit={handleRegister}>
+    <div className="auth-wrap">
+      <form className="card auth-card" onSubmit={submit}>
+        <h2>Register</h2>
         <input
           type="text"
           placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginBottom: "12px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            boxSizing: "border-box",
-          }}
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
-
         <input
           type="email"
           placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginBottom: "12px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            boxSizing: "border-box",
-          }}
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
         />
-
         <input
           type="password"
           placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginBottom: "12px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            boxSizing: "border-box",
-          }}
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
         />
-
-        <button
-          type="submit"
-          style={{
-            padding: "12px 18px",
-            background: "#2563eb",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          Register
-        </button>
+        <button type="submit" disabled={loading}>{loading ? "Loading..." : "Register"}</button>
+        <p>Already have an account? <Link to="/login">Login</Link></p>
       </form>
-
-      {message && <p style={{ marginTop: "12px", fontWeight: "bold" }}>{message}</p>}
-
-      <p>
-        Already have account? <Link to="/login">Login</Link>
-      </p>
     </div>
   );
 }
-
-export default Register;
