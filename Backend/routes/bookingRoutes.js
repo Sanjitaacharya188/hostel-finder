@@ -3,34 +3,22 @@ const router = express.Router();
 
 const Booking = require("../models/Booking");
 const Hostel = require("../models/Hostel");
-
 const { protect } = require("../Middleware/authMiddleware");
 
-// CREATE BOOKING
 router.post("/", protect, async (req, res) => {
   try {
-    const {
-      hostelId,
-      customerName,
-      phone,
-      seatType,
-      paymentMethod,
-    } = req.body;
+    const { hostelId, customerName, phone, seatType, paymentMethod } = req.body;
 
     const hostel = await Hostel.findById(hostelId);
 
     if (!hostel) {
-      return res
-        .status(404)
-        .json({ message: "Hostel not found" });
+      return res.status(404).json({ message: "Hostel not found" });
     }
 
     const seat = hostel.seatPricing[seatType];
 
     if (!seat || seat.available <= 0) {
-      return res
-        .status(400)
-        .json({ message: "Seat not available" });
+      return res.status(400).json({ message: "Seat not available" });
     }
 
     const booking = await Booking.create({
@@ -59,97 +47,55 @@ router.post("/", protect, async (req, res) => {
     res.status(201).json(booking);
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      message: "Booking failed",
-    });
+    res.status(500).json({ message: "Booking failed" });
   }
 });
 
-// GET MY BOOKINGS
 router.get("/mine", protect, async (req, res) => {
   try {
-    const bookings = await Booking.find({
-      user: req.user._id,
-    }).sort({ createdAt: -1 });
+    const bookings = await Booking.find({ user: req.user._id }).sort({
+      createdAt: -1,
+    });
 
     res.json(bookings);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: "Failed to fetch bookings",
-    });
+    res.status(500).json({ message: "Failed to fetch bookings" });
   }
 });
 
-// UPDATE BOOKING
 router.put("/:id", protect, async (req, res) => {
   try {
-    const booking = await Booking.findById(
-      req.params.id
-    );
+    const booking = await Booking.findById(req.params.id);
 
     if (!booking) {
-      return res
-        .status(404)
-        .json({
-          message: "Booking not found",
-        });
+      return res.status(404).json({ message: "Booking not found" });
     }
 
-    booking.customerName =
-      req.body.customerName ||
-      booking.customerName;
+    booking.customerName = req.body.customerName || booking.customerName;
+    booking.phone = req.body.phone || booking.phone;
+    booking.seatType = req.body.seatType || booking.seatType;
+    booking.paymentMethod = req.body.paymentMethod || booking.paymentMethod;
 
-    booking.phone =
-      req.body.phone ||
-      booking.phone;
-
-    booking.seatType =
-      req.body.seatType ||
-      booking.seatType;
-
-    booking.paymentMethod =
-      req.body.paymentMethod ||
-      booking.paymentMethod;
-
-    const updated =
-      await booking.save();
-
+    const updated = await booking.save();
     res.json(updated);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: "Update failed",
-    });
+    res.status(500).json({ message: "Update failed" });
   }
 });
 
-// DELETE BOOKING
 router.delete("/:id", protect, async (req, res) => {
   try {
-    const booking = await Booking.findById(
-      req.params.id
-    );
+    const booking = await Booking.findById(req.params.id);
 
     if (!booking) {
-      return res
-        .status(404)
-        .json({
-          message: "Booking not found",
-        });
+      return res.status(404).json({ message: "Booking not found" });
     }
 
     await booking.deleteOne();
 
-    res.json({
-      message:
-        "Booking deleted successfully",
-    });
+    res.json({ message: "Booking deleted successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: "Delete failed",
-    });
+    res.status(500).json({ message: "Delete failed" });
   }
 });
 

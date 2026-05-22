@@ -8,7 +8,6 @@ const router = express.Router();
 
 router.use(protect, adminOnly);
 
-// ADMIN: get all bookings
 router.get("/bookings", async (req, res) => {
   try {
     const bookings = await Booking.find({})
@@ -28,7 +27,6 @@ router.post("/hostels", async (req, res) => {
     const hostel = await Hostel.create(req.body);
     res.status(201).json(hostel);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Failed to create hostel" });
   }
 });
@@ -45,7 +43,6 @@ router.put("/hostels/:id", async (req, res) => {
 
     res.json(hostel);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Failed to update hostel" });
   }
 });
@@ -61,7 +58,6 @@ router.delete("/hostels/:id", async (req, res) => {
     await hostel.deleteOne();
     res.json({ message: "Hostel removed" });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Failed to delete hostel" });
   }
 });
