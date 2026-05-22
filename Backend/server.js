@@ -28,7 +28,7 @@ app.use("/api/hostels", hostelRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
 
-app.get("/api/seed-hostels",  protect, adminOnly, async (req, res) => {
+app.get("/api/seed-hostels", async (req, res) => {
   try {
     await Hostel.deleteMany();
 
