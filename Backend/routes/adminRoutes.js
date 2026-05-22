@@ -1,11 +1,27 @@
 const express = require("express");
 const Hostel = require("../models/Hostel");
+const Booking = require("../models/Booking");
 const { protect } = require("../Middleware/authMiddleware");
 const { adminOnly } = require("../Middleware/adminMiddleware");
 
 const router = express.Router();
 
 router.use(protect, adminOnly);
+
+// ADMIN: get all bookings
+router.get("/bookings", async (req, res) => {
+  try {
+    const bookings = await Booking.find({})
+      .populate("user", "name email")
+      .populate("hostel", "name location")
+      .sort({ createdAt: -1 });
+
+    res.json(bookings);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to load bookings" });
+  }
+});
 
 router.post("/hostels", async (req, res) => {
   try {

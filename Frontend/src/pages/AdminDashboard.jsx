@@ -19,15 +19,24 @@ const initialForm = {
 
 export default function AdminDashboard() {
   const [hostels, setHostels] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [editingId, setEditingId] = useState(null);
+
   const [form, setForm] = useState(initialForm);
 
   const load = async () => {
     try {
-      const { data } = await api.get("/hostels");
-      setHostels(data);
+      const hostelsRes = await api.get("/hostels");
+      setHostels(hostelsRes.data);
+
+      const bookingsRes = await api.get(
+        "/admin/bookings"
+      );
+      setBookings(bookingsRes.data);
     } catch (error) {
-      toast.error("Failed to load hostels");
+      toast.error(
+        "Failed to load admin data"
+      );
     }
   };
 
@@ -48,48 +57,90 @@ export default function AdminDashboard() {
       };
 
       if (editingId) {
-        await api.put(`/admin/hostels/${editingId}`, payload);
-        toast.success("Hostel updated");
+        await api.put(
+          `/admin/hostels/${editingId}`,
+          payload
+        );
+
+        toast.success(
+          "Hostel updated"
+        );
       } else {
-        await api.post("/admin/hostels", payload);
-        toast.success("Hostel added");
+        await api.post(
+          "/admin/hostels",
+          payload
+        );
+
+        toast.success(
+          "Hostel added"
+        );
       }
 
       setForm(initialForm);
       setEditingId(null);
       load();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Action failed");
+      toast.error(
+        error.response?.data?.message ||
+          "Action failed"
+      );
     }
   };
 
   const edit = (h) => {
     setEditingId(h._id);
+
     setForm({
       name: h.name || "",
       location: h.location || "",
       image: h.image || "",
-      description: h.description || "",
+      description:
+        h.description || "",
       rating: h.rating || 4.2,
-      facilities: Array.isArray(h.facilities)
-        ? h.facilities.join(",")
-        : "WiFi,Food,Laundry,CCTV",
-      seatPricing: h.seatPricing || {
-        fourSeat: { price: 10000, available: 5 },
-        threeSeat: { price: 11000, available: 4 },
-        twoSeat: { price: 12000, available: 3 },
-        singleRoom: { price: 18000, available: 2 },
-      },
+      facilities:
+        Array.isArray(
+          h.facilities
+        )
+          ? h.facilities.join(",")
+          : "WiFi,Food,Laundry,CCTV",
+
+      seatPricing:
+        h.seatPricing || {
+          fourSeat: {
+            price: 10000,
+            available: 5,
+          },
+          threeSeat: {
+            price: 11000,
+            available: 4,
+          },
+          twoSeat: {
+            price: 12000,
+            available: 3,
+          },
+          singleRoom: {
+            price: 18000,
+            available: 2,
+          },
+        },
     });
   };
 
   const remove = async (id) => {
     try {
-      await api.delete(`/admin/hostels/${id}`);
-      toast.success("Hostel deleted");
+      await api.delete(
+        `/admin/hostels/${id}`
+      );
+
+      toast.success(
+        "Hostel deleted"
+      );
+
       load();
     } catch (error) {
-      toast.error("Delete failed");
+      toast.error(
+        "Delete failed"
+      );
     }
   };
 
@@ -97,34 +148,160 @@ export default function AdminDashboard() {
     <div className="page">
       <h1>Admin Dashboard</h1>
 
-      <form className="card admin-form" onSubmit={submit}>
-        <h2>{editingId ? "Edit Hostel" : "Add Hostel"}</h2>
+      {/* ALL BOOKINGS */}
+      <div className="card">
+        <h2>All Bookings</h2>
+
+        {bookings.length ===
+        0 ? (
+          <p>
+            No bookings yet
+          </p>
+        ) : (
+          bookings.map(
+            (b, index) => (
+              <div
+                key={b._id}
+                className="card"
+                style={{
+                  marginBottom:
+                    "15px",
+                }}
+              >
+                <h3>
+                  Booking #
+                  {index + 1}
+                </h3>
+
+                <p>
+                  <b>User:</b>{" "}
+                  {b.user
+                    ?.name ||
+                    "N/A"}
+                </p>
+
+                <p>
+                  <b>Email:</b>{" "}
+                  {b.user
+                    ?.email ||
+                    "N/A"}
+                </p>
+
+                <p>
+                  <b>Phone:</b>{" "}
+                  {b.phone}
+                </p>
+
+                <p>
+                  <b>
+                    Hostel:
+                  </b>{" "}
+                  {b.hostel
+                    ?.name ||
+                    b.hostelName}
+                </p>
+
+                <p>
+                  <b>Seat:</b>{" "}
+                  {b.seatLabel ||
+                    b.seatType}
+                </p>
+
+                <p>
+                  <b>Price:</b>{" "}
+                  Rs.{" "}
+                  {b.price}
+                </p>
+
+                <p>
+                  <b>
+                    Payment:
+                  </b>{" "}
+                  {
+                    b.paymentMethod
+                  }
+                </p>
+
+                <p>
+                  <b>Status:</b>{" "}
+                  {b.paymentStatus ||
+                    "Pending"}
+                </p>
+
+                <p>
+                  <b>Date:</b>{" "}
+                  {new Date(
+                    b.createdAt
+                  ).toLocaleString()}
+                </p>
+              </div>
+            )
+          )
+        )}
+      </div>
+
+      {/* HOSTEL FORM */}
+      <form
+        className="card admin-form"
+        onSubmit={submit}
+      >
+        <h2>
+          {editingId
+            ? "Edit Hostel"
+            : "Add Hostel"}
+        </h2>
 
         <input
           type="text"
           placeholder="Name"
           value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              name:
+                e.target.value,
+            })
+          }
         />
 
         <input
           type="text"
           placeholder="Location"
           value={form.location}
-          onChange={(e) => setForm({ ...form, location: e.target.value })}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              location:
+                e.target.value,
+            })
+          }
         />
 
         <input
           type="text"
           placeholder="Image URL"
           value={form.image}
-          onChange={(e) => setForm({ ...form, image: e.target.value })}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              image:
+                e.target.value,
+            })
+          }
         />
 
         <textarea
           placeholder="Description"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          value={
+            form.description
+          }
+          onChange={(e) =>
+            setForm({
+              ...form,
+              description:
+                e.target.value,
+            })
+          }
         />
 
         <input
@@ -133,34 +310,62 @@ export default function AdminDashboard() {
           placeholder="Rating"
           value={form.rating}
           onChange={(e) =>
-            setForm({ ...form, rating: Number(e.target.value) })
+            setForm({
+              ...form,
+              rating: Number(
+                e.target.value
+              ),
+            })
           }
         />
 
         <input
           type="text"
           placeholder="Facilities comma separated"
-          value={form.facilities}
-          onChange={(e) => setForm({ ...form, facilities: e.target.value })}
+          value={
+            form.facilities
+          }
+          onChange={(e) =>
+            setForm({
+              ...form,
+              facilities:
+                e.target.value,
+            })
+          }
         />
 
         <button type="submit">
-          {editingId ? "Update Hostel" : "Add Hostel"}
+          {editingId
+            ? "Update Hostel"
+            : "Add Hostel"}
         </button>
       </form>
 
+      {/* HOSTELS */}
       <div className="grid">
         {hostels.map((h) => (
-          <div className="card hostel-card" key={h._id}>
-            <img src={h.image} alt={h.name} />
+          <div
+            className="card hostel-card"
+            key={h._id}
+          >
+            <img
+              src={h.image}
+              alt={h.name}
+            />
+
             <h3>{h.name}</h3>
-            <p>{h.location}</p>
+
+            <p>
+              {h.location}
+            </p>
 
             <div className="row gap">
               <button
                 type="button"
                 className="secondary-btn"
-                onClick={() => edit(h)}
+                onClick={() =>
+                  edit(h)
+                }
               >
                 Edit
               </button>
@@ -168,7 +373,11 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 className="danger-btn"
-                onClick={() => remove(h._id)}
+                onClick={() =>
+                  remove(
+                    h._id
+                  )
+                }
               >
                 Delete
               </button>
